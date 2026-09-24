@@ -1,0 +1,6 @@
+# Root ignores
+.DS_Store
+*.log
+.agents/
+.idea/
+.vscode/
