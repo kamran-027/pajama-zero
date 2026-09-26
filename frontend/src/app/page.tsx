@@ -343,100 +343,142 @@ export default function PajamaZeroClinicalConsole() {
 
   return (
     <BackgroundGrid>
-      <div className="flex flex-col min-h-screen max-w-[1680px] mx-auto px-6 py-6 gap-6 w-full">
-        {/* 1. CRISP CLINICAL LIGHT HEADER */}
-        <header className="rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-md px-7 py-4.5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20 text-white">
-              <HeartPulse className="w-5 h-5" />
+      <div className="flex flex-col min-h-screen max-w-[1680px] mx-auto px-4 sm:px-6 py-4 sm:py-5 gap-3.5 sm:gap-4 w-full">
+        {/* 1. ARCHITECTURAL CLINICAL COMMAND HEADER */}
+        <header className="rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-md px-4 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-4 shadow-sm w-full min-w-0">
+          {/* Left: Brand & Clinical Context */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-xs text-white shrink-0">
+              <HeartPulse className="w-4 h-4 text-emerald-400" />
             </div>
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="font-extrabold text-sm tracking-wider text-slate-900">PAJAMAZERO</h1>
-                <span className="text-[10px] font-mono-clinical px-2.5 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 font-bold">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm tracking-tight text-slate-900">PAJAMAZERO</span>
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono-clinical px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold shrink-0">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                  </span>
                   JEV SYSTEM ONE
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Apex Ambulatory Clinical Network &bull; Internal Medicine Triage Engine &bull; Epic MyChart Integration
+              <p className="text-[11px] text-slate-500 mt-0.5 font-medium truncate">
+                Apex Health System &bull; Dr. Reynolds &bull; IM In-Basket
               </p>
             </div>
           </div>
 
-          {/* Telemetry Counter Strip (Clinical Light) */}
-          <div className="flex flex-wrap items-center gap-3 text-xs font-mono-clinical">
-            <div className="flex items-center gap-4 rounded-xl bg-slate-50 border border-slate-200 px-4 py-2 text-slate-600 shadow-inner">
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Pajama Time Saved</span>
-                <span className="text-slate-900 font-bold text-sm">
+          {/* Center: Executive Clinical Impact HUD */}
+          <div className="hidden lg:flex items-center gap-3.5 rounded-xl bg-slate-50/90 border border-slate-200/80 px-4 py-1.5 text-xs font-mono-clinical text-slate-600 shadow-2xs shrink-0">
+            {/* 1. Time Saved */}
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <div className="w-6 h-6 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                <Clock className="w-3.5 h-3.5 text-blue-600" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-slate-600 font-semibold">Nightly Saved:</span>
+                <strong className="text-slate-900 font-bold text-xs">
                   {batchMetrics ? `${Math.floor(batchMetrics.pajama_time_saved_minutes / 60)}h ${batchMetrics.pajama_time_saved_minutes % 60}m` : "2h 15m"}
-                </span>
+                </strong>
               </div>
-              <div className="h-6 w-[1px] bg-slate-200" />
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Inbox Deflection</span>
-                <span className="text-emerald-600 font-bold text-sm">
+            </div>
+
+            <div className="h-4 w-px bg-slate-200 shrink-0" />
+
+            {/* 2. Deflection Rate */}
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-slate-600 font-semibold">Deflection:</span>
+                <strong className="text-emerald-700 font-bold text-xs">
                   {batchMetrics ? `${batchMetrics.physician_deflection_rate}%` : "80.0%"}
+                </strong>
+                <span className="text-[10px] text-slate-600 font-medium">
+                  {batchMetrics ? `(${batchMetrics.deflected_count}/${batchMetrics.total_messages})` : "(12/15)"}
                 </span>
               </div>
-              <div className="h-6 w-[1px] bg-slate-200" />
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Decision Latency</span>
-                <span className="text-slate-800 font-bold text-sm">
+            </div>
+
+            <div className="hidden xl:block h-4 w-px bg-slate-200 shrink-0" />
+
+            {/* 3. Latency */}
+            <div className="hidden xl:flex items-center gap-2 whitespace-nowrap">
+              <div className="w-6 h-6 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
+                <Zap className="w-3.5 h-3.5 text-teal-600" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-slate-600 font-semibold">Latency:</span>
+                <strong className="text-slate-900 font-bold text-xs">
                   {batchMetrics ? `${batchMetrics.average_latency_ms}ms` : "65.5ms"}
-                </span>
+                </strong>
               </div>
-              <div className="h-6 w-[1px] bg-slate-200" />
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Batch Cost</span>
-                <span className="text-slate-700 font-bold text-sm">
+            </div>
+
+            <div className="hidden 2xl:block h-4 w-px bg-slate-200 shrink-0" />
+
+            {/* 4. Cost */}
+            <div className="hidden 2xl:flex items-center gap-2 whitespace-nowrap">
+              <div className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-slate-600 font-semibold">Cost:</span>
+                <strong className="text-slate-900 font-bold text-xs">
                   ${batchMetrics ? batchMetrics.total_cost_usd.toFixed(5) : "0.00012"}
-                </span>
+                </strong>
               </div>
             </div>
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowShortcutsHelp(true)}
-                className="h-10 px-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 text-xs flex items-center gap-1.5 transition-all shadow-sm"
-                title="Keyboard Shortcuts (?)"
-              >
-                <Keyboard className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden sm:inline font-medium">Shortcuts</span>
-              </button>
+          {/* Right: Actions Island (Always Fits, Never Cuts Off) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowShortcutsHelp(true)}
+              className="h-9 px-2.5 sm:px-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-600 hover:text-slate-900 text-xs font-medium flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-[0.98]"
+              title="Keyboard Shortcuts (?)"
+            >
+              <Keyboard className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden sm:inline">Keys</span>
+              <kbd className="px-1 py-0.5 text-[9px] bg-slate-100 text-slate-500 rounded border border-slate-200 font-mono-clinical">?</kbd>
+            </button>
 
-              <button
-                onClick={() => setShowTestBench(true)}
-                className="h-10 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-medium flex items-center gap-2 transition-all shadow-sm"
-              >
-                <Command className="w-3.5 h-3.5 text-slate-500" />
-                <span>Test Note</span>
-                <kbd className="px-1.5 py-0.5 text-[10px] bg-slate-100 text-slate-500 rounded border border-slate-200">⌘K</kbd>
-              </button>
+            <button
+              onClick={() => setShowTestBench(true)}
+              className="h-9 px-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 hover:text-slate-900 text-xs font-medium flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-[0.98]"
+              title="Interactive Test Bench (⌘K)"
+            >
+              <Command className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden sm:inline">Simulator</span>
+              <kbd className="px-1.5 py-0.5 text-[9px] bg-slate-100 text-slate-500 rounded border border-slate-200 font-mono-clinical">⌘K</kbd>
+            </button>
 
-              <ShimmerButton
-                onClick={handleRunBatchTriage}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Evaluating...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Triage In-Basket (15)</span>
-                  </div>
-                )}
-              </ShimmerButton>
-            </div>
+            <ShimmerButton
+              onClick={handleRunBatchTriage}
+              disabled={isLoading}
+              className="h-9 px-3.5 sm:px-4 text-xs font-bold rounded-xl whitespace-nowrap shadow-sm hover:shadow active:scale-[0.98]"
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Evaluating...</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>Triage Queue</span>
+                  <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono-clinical text-slate-200 font-bold">
+                    {presets.length || 15}
+                  </span>
+                </div>
+              )}
+            </ShimmerButton>
           </div>
         </header>
 
         {/* 2. FLOATING TABS BAR (Clean Clinical White) */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-md px-4 py-2.5 flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-md px-4 py-2 flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
           {/* Animated Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto py-1">
             {laneTabs.map((tab) => {
@@ -488,15 +530,15 @@ export default function PajamaZeroClinicalConsole() {
         </div>
 
         {/* 3. SPACIOUS MASTER-DETAIL CLINICAL WORKSPACE */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-6 pb-6 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 pb-4 overflow-hidden">
           {/* LEFT COLUMN: Queue Cards */}
-          <div className="w-full lg:w-[460px] rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-md flex flex-col shrink-0 shadow-sm overflow-hidden">
-            <div className="h-10 px-5 border-b border-slate-200 flex items-center justify-between text-[11px] text-slate-500 font-mono-clinical uppercase tracking-wider bg-slate-50/80 font-bold">
+          <div className="w-full lg:w-[440px] xl:w-[460px] rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-md flex flex-col shrink-0 shadow-sm overflow-hidden">
+            <div className="h-9 px-4 border-b border-slate-200 flex items-center justify-between text-[11px] text-slate-500 font-mono-clinical uppercase tracking-wider bg-slate-50/80 font-bold">
               <span>Patient &bull; Clinical Complaint</span>
               <span>Acuity &bull; Route</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2.5 max-h-[calc(100vh-280px)]">
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 max-h-[calc(100vh-215px)]">
               {filteredResults.length === 0 ? (
                 <div className="p-12 text-center flex flex-col items-center justify-center gap-3 text-slate-400">
                   <Inbox className="w-10 h-10 text-slate-300" />
@@ -573,7 +615,7 @@ export default function PajamaZeroClinicalConsole() {
           </div>
 
           {/* RIGHT COLUMN: Rich Clinical Chart Workspace (Pure White Bento Grid) */}
-          <div className="flex-1 flex flex-col gap-6 overflow-y-auto max-h-[calc(100vh-280px)] pr-2">
+          <div className="flex-1 flex flex-col gap-3.5 overflow-y-auto max-h-[calc(100vh-215px)] pr-1.5 sm:pr-2">
             {currentResult ? (
               <AnimatePresence mode="wait">
                 <motion.div
@@ -582,10 +624,10 @@ export default function PajamaZeroClinicalConsole() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="flex flex-col gap-6"
+                  className="flex flex-col gap-3.5"
                 >
                   {/* BENTO 1: PATIENT PROFILE & REAL-TIME VITALS */}
-                  <CardSpotlight className="flex flex-col gap-5">
+                  <CardSpotlight className="flex flex-col gap-3.5 p-4 sm:p-5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-blue-100 border border-blue-200 flex items-center justify-center text-sm font-extrabold text-blue-700 shadow-sm">
@@ -612,33 +654,33 @@ export default function PajamaZeroClinicalConsole() {
                     </div>
 
                     {/* Vitals Telemetry Row (Spacious Clean White Cards) */}
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                      <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-1 font-bold">Blood Pressure</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
+                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Blood Pressure</span>
                         <span className="font-extrabold text-sm text-slate-900">{vitals.bp}</span>
                         <span className="text-[9px] text-slate-400 block">mmHg</span>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-1 font-bold">Heart Rate</span>
+                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
+                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Heart Rate</span>
                         <span className="font-extrabold text-sm text-slate-900">{vitals.hr}</span>
                         <span className="text-[9px] text-slate-400 block">bpm</span>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-1 font-bold">Oxygen Sat</span>
+                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
+                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Oxygen Sat</span>
                         <span className="font-extrabold text-sm text-slate-900">{vitals.spo2}</span>
                         <span className="text-[9px] text-slate-400 block">Room Air</span>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-1 font-bold">Temperature</span>
+                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
+                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Temperature</span>
                         <span className="font-extrabold text-sm text-slate-900">{vitals.temp}</span>
                         <span className="text-[9px] text-slate-400 block">Oral Core</span>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-1 font-bold">Pain Rating</span>
+                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
+                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Pain Rating</span>
                         <span className={`font-extrabold text-sm ${currentResult.acuity_score >= 8 ? "text-rose-600" : "text-slate-900"}`}>
                           {vitals.pain}
                         </span>
@@ -647,9 +689,9 @@ export default function PajamaZeroClinicalConsole() {
                     </div>
 
                     {/* Medical History & Current Meds */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
-                      <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                        <span className="text-[10px] font-mono-clinical uppercase tracking-wider text-slate-500 block mb-1.5 font-bold">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+                      <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                        <span className="text-[10px] font-mono-clinical uppercase tracking-wider text-slate-500 block mb-1 font-bold">
                           Documented Clinical History
                         </span>
                         <p className="text-slate-700 font-mono-clinical text-xs leading-relaxed">
@@ -657,14 +699,14 @@ export default function PajamaZeroClinicalConsole() {
                         </p>
                       </div>
 
-                      <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                        <span className="text-[10px] font-mono-clinical uppercase tracking-wider text-slate-500 block mb-1.5 font-bold">
+                      <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                        <span className="text-[10px] font-mono-clinical uppercase tracking-wider text-slate-500 block mb-1 font-bold">
                           Active Medication Regimen
                         </span>
                         <div className="flex flex-wrap gap-1.5">
                           {currentPresetContext?.active_medications && currentPresetContext.active_medications.length > 0 ? (
                             currentPresetContext.active_medications.map((m, i) => (
-                              <span key={i} className="px-2 py-1 rounded-md bg-white border border-slate-200 text-xs font-mono-clinical text-slate-700 shadow-2xs">
+                              <span key={i} className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-xs font-mono-clinical text-slate-700 shadow-2xs">
                                 {m}
                               </span>
                             ))
@@ -677,7 +719,7 @@ export default function PajamaZeroClinicalConsole() {
                   </CardSpotlight>
 
                   {/* BENTO 2: INBOUND PATIENT PORTAL ENCOUNTER */}
-                  <CardSpotlight className="flex flex-col gap-3">
+                  <CardSpotlight className="flex flex-col gap-2.5 p-4 sm:p-5">
                     <div className="flex items-center justify-between text-xs text-slate-500 pb-3 border-b border-slate-100">
                       <div className="flex items-center gap-2.5">
                         <FileText className="w-4 h-4 text-blue-600" />
@@ -697,7 +739,7 @@ export default function PajamaZeroClinicalConsole() {
                   </CardSpotlight>
 
                   {/* BENTO 3: JEV SYSTEM ONE DECISION MATRIX & SPEED BENCHMARK */}
-                  <CardSpotlight className="flex flex-col gap-4">
+                  <CardSpotlight className="flex flex-col gap-3.5 p-4 sm:p-5">
                     <div
                       onClick={() => setShowTrace(!showTrace)}
                       className="flex items-center justify-between cursor-pointer pb-2 border-b border-slate-100"
@@ -715,32 +757,32 @@ export default function PajamaZeroClinicalConsole() {
                     </div>
 
                     {showTrace && (
-                      <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-3">
                         {/* Primitives Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono-clinical text-xs">
-                          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-mono-clinical text-xs">
+                          <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
                             <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Choice Primitive (Lane)</span>
-                            <span className="font-bold text-slate-900 text-sm mt-1 block">{currentResult.lane}</span>
-                            <span className="text-[10px] text-slate-500 mt-1 block">Deterministic routing</span>
+                            <span className="font-bold text-slate-900 text-sm mt-0.5 block">{currentResult.lane}</span>
+                            <span className="text-[10px] text-slate-500 mt-0.5 block">Deterministic routing</span>
                           </div>
 
-                          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                          <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
                             <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Score Primitive (1-10)</span>
-                            <span className="font-bold text-amber-700 text-sm mt-1 block">Acuity Level {currentResult.acuity_score} / 10</span>
-                            <span className="text-[10px] text-slate-500 mt-1 block">Continuous triage index</span>
+                            <span className="font-bold text-amber-700 text-sm mt-0.5 block">Acuity Level {currentResult.acuity_score} / 10</span>
+                            <span className="text-[10px] text-slate-500 mt-0.5 block">Continuous triage index</span>
                           </div>
 
-                          <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                          <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
                             <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Noul Primitive (MD License)</span>
-                            <span className={`font-bold text-sm mt-1 block ${currentResult.requires_physician_license ? "text-rose-700" : "text-emerald-700"}`}>
+                            <span className={`font-bold text-sm mt-0.5 block ${currentResult.requires_physician_license ? "text-rose-700" : "text-emerald-700"}`}>
                               {currentResult.requires_physician_license ? "REQUIRED (MD)" : "NOT REQUIRED"}
                             </span>
-                            <span className="text-[10px] text-slate-500 mt-1 block">Legal medical safeguard</span>
+                            <span className="text-[10px] text-slate-500 mt-0.5 block">Legal medical safeguard</span>
                           </div>
                         </div>
 
                         {/* Visual Benchmark Comparison Bar */}
-                        <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-col gap-2 font-mono-clinical text-xs">
+                        <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-col gap-1.5 font-mono-clinical text-xs">
                           <div className="flex items-center justify-between">
                             <span className="text-slate-700 font-bold">Execution Latency Benchmark</span>
                             <span className="text-emerald-700 font-extrabold">28x Faster with JEV System One</span>
@@ -756,7 +798,7 @@ export default function PajamaZeroClinicalConsole() {
                         </div>
 
                         {/* Clinical Rationale Text */}
-                        <div className="text-xs leading-relaxed text-slate-700 border-t border-slate-100 pt-3">
+                        <div className="text-xs leading-relaxed text-slate-700 border-t border-slate-100 pt-2.5">
                           <strong className="text-slate-900">Clinical Triage Rationale: </strong>
                           {currentResult.clinical_rationale}
                         </div>
@@ -765,8 +807,8 @@ export default function PajamaZeroClinicalConsole() {
                   </CardSpotlight>
 
                   {/* BENTO 4: CLINICAL ORDER & DELEGATION SLIP */}
-                  <CardSpotlight className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <CardSpotlight className="flex flex-col gap-3.5 p-4 sm:p-5">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                       <div className="flex items-center gap-2">
                         <Stethoscope className="w-4 h-4 text-blue-600" />
                         <h4 className="font-mono-clinical text-xs font-bold text-slate-900 uppercase tracking-wider">
@@ -778,9 +820,9 @@ export default function PajamaZeroClinicalConsole() {
                       </span>
                     </div>
 
-                    <div className="text-xs font-mono-clinical bg-slate-50 p-4 rounded-xl border border-slate-200 text-slate-800 leading-relaxed shadow-inner">
-                      <p className="font-bold text-slate-900 mb-2">{currentResult.action_plan}</p>
-                      <p className="text-slate-600 text-xs border-t border-slate-200 pt-2.5 mt-2">
+                    <div className="text-xs font-mono-clinical bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-slate-800 leading-relaxed shadow-inner">
+                      <p className="font-bold text-slate-900 mb-1.5">{currentResult.action_plan}</p>
+                      <p className="text-slate-600 text-xs border-t border-slate-200 pt-2 mt-1.5">
                         {currentResult.pre_drafted_action}
                       </p>
                     </div>
