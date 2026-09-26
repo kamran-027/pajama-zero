@@ -77,7 +77,7 @@ class JevClinicalEngine:
             pre_drafted_action=pre_drafted,
             latency_ms=simulated_latency,
             token_cost_usd=max(token_cost, 0.000008),
-            evaluated_by="JEV System One (TypeSafe AI)",
+            evaluated_by="PajamaZero Autonomous Engine",
             timestamp=message.timestamp
         )
 

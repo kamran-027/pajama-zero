@@ -13,6 +13,8 @@ import {
   Clock,
   Command,
   CreditCard,
+  Download,
+  FileSpreadsheet,
   FileText,
   Filter,
   HeartPulse,
@@ -20,6 +22,7 @@ import {
   Keyboard,
   Layers,
   Moon,
+  Network,
   Pill,
   Play,
   RotateCcw,
@@ -29,6 +32,7 @@ import {
   Sparkles,
   Stethoscope,
   Tag,
+  Upload,
   User,
   Users,
   X,
@@ -111,6 +115,8 @@ export default function PajamaZeroClinicalConsole() {
   const [showTrace, setShowTrace] = useState<boolean>(true);
   const [showTestBench, setShowTestBench] = useState<boolean>(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false);
+  const [showImportModal, setShowImportModal] = useState<boolean>(false);
+  const [importTab, setImportTab] = useState<"csv" | "ehr">("csv");
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   // Custom Simulator State
@@ -121,6 +127,152 @@ export default function PajamaZeroClinicalConsole() {
   const [customBody, setCustomBody] = useState<string>("Twisted my left knee 4 days ago. Quite swollen and stiff walking down stairs. Do I need an MRI or stronger anti-inflammatory?");
   const [customHistory, setCustomHistory] = useState<string>("Mild Osteoarthritis, No prior surgeries");
   const [customMeds, setCustomMeds] = useState<string>("Naproxen 500mg");
+
+  const handleDownloadSampleCsv = () => {
+    const sampleData = [
+      'patient_name,mrn,subject,body,patient_age,patient_gender,active_medications,relevant_history',
+      '"Sarah Jenkins","MRN-10294","Crushing substernal chest pressure for 30 mins","Dr. Reynolds, having severe chest tightness radiating down left arm with shortness of breath.",62,"F","Lisinopril 10mg; Metoprolol 25mg","Hypertension, CAD"',
+      '"Thomas Bradley","MRN-33921","Refill for Amlodipine 5mg","Down to my last 4 days of blood pressure pills. Can you please send 90-day refill to Walgreens?",68,"M","Amlodipine 5mg","Essential Hypertension"',
+      '"Emily Chen","MRN-55812","Follow-up on persistent migraine","The sumatriptan is not relieving these daily throbbing headaches anymore. Need to discuss alternative prophylactic medications.",41,"F","Sumatriptan 50mg PRN; Oral Contraceptive","Chronic Migraine"',
+      '"Marcus Vance","MRN-44910","Pre-op clearance paper signoff","Attached surgical clearance form for upcoming inguinal hernia repair next Tuesday. Vitals were checked yesterday.",55,"M","None","Inguinal Hernia"',
+      '"Brenda Walsh","MRN-88201","Thank you note for last visit","Just wanted to thank Dr. Reynolds and the staff for the thorough care during my annual checkup! BP is looking much better.",59,"F","Hydrochlorothiazide 12.5mg","None"'
+    ].join('\\n');
+
+    const blob = new Blob([sampleData], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'pajamazero_inbasket_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    triggerNotice("Sample EHR in-basket CSV template downloaded.");
+  };
+
+  const handleResetToStandardCases = () => {
+    fetch(`${API_BASE}/api/inbox/presets`)
+      .then((res) => res.json())
+      .then((presetData: PatientMessage[]) => {
+        setPresets(presetData);
+        if (presetData && presetData.length > 0) {
+          fetch(`${API_BASE}/api/triage/batch`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: presetData })
+          })
+            .then((res) => res.json())
+            .then((data: BatchResponse) => {
+              setBatchMetrics(data);
+              setResults(data.results);
+              setSelectedIndex(0);
+              setShowImportModal(false);
+              triggerNotice("Reset to standard clinic in-basket (15 cases).");
+            });
+        }
+      })
+      .catch((err) => console.error("Reset error:", err));
+  };
+
+  const handleCsvFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (!text) return;
+
+        const lines = text.split(/\\r?\\n/).filter((l) => l.trim().length > 0);
+        if (lines.length < 2) {
+          triggerNotice("CSV must contain a header row and at least one message row.");
+          return;
+        }
+
+        const parseCsvLine = (line: string): string[] => {
+          const result: string[] = [];
+          let cur = "";
+          let inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(cur.trim().replace(/^"|"$/g, ''));
+              cur = "";
+            } else {
+              cur += char;
+            }
+          }
+          result.push(cur.trim().replace(/^"|"$/g, ''));
+          return result;
+        };
+
+        const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/[^a-z_]/g, ''));
+
+        const newMessages: PatientMessage[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCsvLine(lines[i]);
+          if (cols.length < 2) continue;
+
+          const rowMap: Record<string, string> = {};
+          headers.forEach((h, idx) => {
+            rowMap[h] = cols[idx] || "";
+          });
+
+          const name = rowMap.patient_name || rowMap.name || rowMap.patient || `Patient ${i}`;
+          const mrn = rowMap.mrn || `MRN-${Math.floor(10000 + Math.random() * 90000)}`;
+          const subject = rowMap.subject || rowMap.title || "Inbound Portal Inquiry";
+          const body = rowMap.body || rowMap.message || rowMap.text || "No message body provided.";
+          const age = parseInt(rowMap.patient_age || rowMap.age || "52", 10) || 52;
+          const gender = (rowMap.patient_gender || rowMap.gender || "U").toUpperCase();
+          const medsStr = rowMap.active_medications || rowMap.medications || rowMap.meds || "";
+          const meds = medsStr ? medsStr.split(';').map((m) => m.trim()).filter(Boolean) : [];
+          const history = rowMap.relevant_history || rowMap.history || "No documented chronic conditions.";
+
+          newMessages.push({
+            id: `csv-${Date.now()}-${i}`,
+            patient_name: name,
+            patient_age: age,
+            patient_gender: gender,
+            mrn: mrn,
+            subject: subject,
+            body: body,
+            timestamp: "Today, Just now",
+            relevant_history: history,
+            active_medications: meds
+          });
+        }
+
+        if (newMessages.length === 0) {
+          triggerNotice("No valid patient messages found in CSV.");
+          return;
+        }
+
+        setIsLoading(true);
+        setShowImportModal(false);
+        triggerNotice(`Triaging ${newMessages.length} imported messages...`);
+
+        const res = await fetch(`${API_BASE}/api/triage/batch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: newMessages })
+        });
+        const data: BatchResponse = await res.json();
+        setPresets(newMessages);
+        setResults(data.results);
+        setBatchMetrics(data);
+        setSelectedIndex(0);
+        setIsLoading(false);
+        triggerNotice(`Successfully triaged ${newMessages.length} imported patient messages!`);
+      } catch (err) {
+        console.error("CSV import error:", err);
+        setIsLoading(false);
+        triggerNotice("Failed to parse or triage CSV file.");
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // Auto-Hydrate on Mount
   useEffect(() => {
@@ -359,7 +511,7 @@ export default function PajamaZeroClinicalConsole() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                   </span>
-                  JEV SYSTEM ONE
+                  AUTONOMOUS TRIAGE
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5 font-medium truncate">
@@ -513,19 +665,30 @@ export default function PajamaZeroClinicalConsole() {
             })}
           </div>
 
-          {/* Search Box */}
-          <div className="relative w-full md:w-64 shrink-0">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
-            <input
-              type="text"
-              placeholder="Search patients, MRN, symptoms (/)..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setSelectedIndex(0);
-              }}
-              className="h-9 w-full pl-9 pr-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
-            />
+          {/* Search Box & Import Actions */}
+          <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+            <div className="relative w-full md:w-56 lg:w-64 shrink-0">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+              <input
+                type="text"
+                placeholder="Search queue, MRN (/)..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSelectedIndex(0);
+                }}
+                className="h-9 w-full pl-9 pr-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+              />
+            </div>
+
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="h-9 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 shadow-sm active:scale-[0.98]"
+              title="Upload In-Basket CSV or Connect EHR"
+            >
+              <Upload className="w-3.5 h-3.5 text-slate-300" />
+              <span>Import CSV</span>
+            </button>
           </div>
         </div>
 
@@ -738,7 +901,7 @@ export default function PajamaZeroClinicalConsole() {
                     </p>
                   </CardSpotlight>
 
-                  {/* BENTO 3: JEV SYSTEM ONE DECISION MATRIX & SPEED BENCHMARK */}
+                  {/* BENTO 3: CLINICAL DECISION TRACE & SPEED BENCHMARK */}
                   <CardSpotlight className="flex flex-col gap-3.5 p-4 sm:p-5">
                     <div
                       onClick={() => setShowTrace(!showTrace)}
@@ -747,7 +910,7 @@ export default function PajamaZeroClinicalConsole() {
                       <div className="flex items-center gap-2.5">
                         <Zap className="w-4 h-4 text-teal-600" />
                         <h4 className="font-mono-clinical text-xs text-slate-900 font-extrabold tracking-wider uppercase">
-                          JEV System One Decision Trace
+                          Deterministic Clinical Decision Trace
                         </h4>
                         <span className="text-xs font-mono-clinical text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200 font-bold">
                           {currentResult.latency_ms}ms &bull; ${currentResult.token_cost_usd.toFixed(6)}
@@ -761,19 +924,19 @@ export default function PajamaZeroClinicalConsole() {
                         {/* Primitives Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-mono-clinical text-xs">
                           <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Choice Primitive (Lane)</span>
+                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Lane Routing</span>
                             <span className="font-bold text-slate-900 text-sm mt-0.5 block">{currentResult.lane}</span>
                             <span className="text-[10px] text-slate-500 mt-0.5 block">Deterministic routing</span>
                           </div>
 
                           <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Score Primitive (1-10)</span>
+                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Acuity Risk Index</span>
                             <span className="font-bold text-amber-700 text-sm mt-0.5 block">Acuity Level {currentResult.acuity_score} / 10</span>
                             <span className="text-[10px] text-slate-500 mt-0.5 block">Continuous triage index</span>
                           </div>
 
                           <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Noul Primitive (MD License)</span>
+                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Physician License Safeguard</span>
                             <span className={`font-bold text-sm mt-0.5 block ${currentResult.requires_physician_license ? "text-rose-700" : "text-emerald-700"}`}>
                               {currentResult.requires_physician_license ? "REQUIRED (MD)" : "NOT REQUIRED"}
                             </span>
@@ -785,15 +948,15 @@ export default function PajamaZeroClinicalConsole() {
                         <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-col gap-1.5 font-mono-clinical text-xs">
                           <div className="flex items-center justify-between">
                             <span className="text-slate-700 font-bold">Execution Latency Benchmark</span>
-                            <span className="text-emerald-700 font-extrabold">28x Faster with JEV System One</span>
+                            <span className="text-emerald-700 font-extrabold">28x Faster Than Standard LLMs</span>
                           </div>
                           <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden flex border border-slate-300">
-                            <div className="bg-teal-500 h-full w-[4%]" title="JEV: 65ms" />
-                            <div className="bg-slate-400 h-full w-[96%]" title="GPT-4: 1,800ms" />
+                            <div className="bg-teal-500 h-full w-[4%]" title="PajamaZero: 65ms" />
+                            <div className="bg-slate-400 h-full w-[96%]" title="Standard LLM: 1,800ms" />
                           </div>
                           <div className="flex items-center justify-between text-slate-500 text-[10px] pt-0.5">
-                            <span className="text-teal-700 font-bold">⚡ JEV: {currentResult.latency_ms}ms ($0.000008)</span>
-                            <span>GPT-4: ~1,800ms ($0.015000)</span>
+                            <span className="text-teal-700 font-bold">⚡ PajamaZero: {currentResult.latency_ms}ms ($0.000008)</span>
+                            <span>Standard LLM: ~1,800ms ($0.015000)</span>
                           </div>
                         </div>
 
@@ -969,7 +1132,7 @@ export default function PajamaZeroClinicalConsole() {
               </div>
 
               <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
-                <span className="text-[11px] text-slate-500 font-mono-clinical">Evaluates via JEV in &lt;100ms</span>
+                <span className="text-[11px] text-slate-500 font-mono-clinical">Sub-80ms Autonomous Triage</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowTestBench(false)}
@@ -1051,6 +1214,190 @@ export default function PajamaZeroClinicalConsole() {
                   Close
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* IN-BASKET INGESTION & EHR INTEGRATION MODAL */}
+      <AnimatePresence>
+        {showImportModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-6 shadow-2xl flex flex-col gap-5"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                    <FileSpreadsheet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono-clinical">
+                      In-Basket Ingestion & EHR Pipeline
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      Upload clinical message batch (.csv) or connect hospital EMR
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  className="text-slate-400 hover:text-slate-600 text-xs p-1"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                <button
+                  onClick={() => setImportTab("csv")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                    importTab === "csv"
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload CSV Batch</span>
+                </button>
+                <button
+                  onClick={() => setImportTab("ehr")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                    importTab === "ehr"
+                      ? "bg-slate-900 text-white shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <Network className="w-3.5 h-3.5" />
+                  <span>EHR Integration Options</span>
+                </button>
+              </div>
+
+              {importTab === "csv" ? (
+                <div className="flex flex-col gap-4">
+                  {/* Drop zone */}
+                  <label className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/70 hover:bg-blue-50/30 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">
+                        Upload Patient In-Basket CSV
+                      </span>
+                      <span className="text-[11px] text-slate-500 block mt-0.5">
+                        Drag and drop your file or click to browse (.csv)
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={handleCsvFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* Sample Template & Reset Actions */}
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                    <div>
+                      <span className="font-semibold text-slate-800 block">Need a sample EHR CSV?</span>
+                      <span className="text-[11px] text-slate-500">
+                        Download pre-formatted CSV with required clinical columns
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleDownloadSampleCsv}
+                      className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-semibold flex items-center gap-1.5 shadow-2xs hover:bg-slate-50 shrink-0"
+                    >
+                      <Download className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Download Template</span>
+                    </button>
+                  </div>
+
+                  {/* Preset Reset Button */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                    <button
+                      onClick={handleResetToStandardCases}
+                      className="text-slate-500 hover:text-slate-800 text-[11px] flex items-center gap-1 font-mono-clinical underline"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset to standard 15 clinic cases</span>
+                    </button>
+                    <button
+                      onClick={() => setShowImportModal(false)}
+                      className="h-8 px-4 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 text-xs">
+                  <p className="text-slate-600 leading-relaxed text-[11px]">
+                    PajamaZero integrates natively into existing hospital infrastructure without disrupting physician workflow:
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-2.5">
+                    <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/80">
+                      <div className="flex items-center justify-between">
+                        <strong className="text-slate-900 font-bold">1. SMART on FHIR / HL7 API</strong>
+                        <span className="text-[9px] font-mono-clinical font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Native EMR</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        Direct webhook synchronization with Epic MyChart, Cerner Millennium, or AthenaHealth. Listens for inbound <code className="font-mono-clinical bg-white px-1 py-0.2 rounded border text-[10px]">Communication</code> resources and dispatches auto-drafted <code className="font-mono-clinical bg-white px-1 py-0.2 rounded border text-[10px]">Task</code> routing slips.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/80">
+                      <div className="flex items-center justify-between">
+                        <strong className="text-slate-900 font-bold">2. Secure Clinical Email Forwarder</strong>
+                        <span className="text-[9px] font-mono-clinical font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Zero-IT Setup</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        Route automated patient portal notification emails to a dedicated clinic endpoint (<code className="font-mono-clinical bg-white px-1 py-0.2 rounded border text-[10px]">triage@clinic.pajamazero.health</code>) with TLS 1.3 / HIPAA encryption.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/80">
+                      <div className="flex items-center justify-between">
+                        <strong className="text-slate-900 font-bold">3. Epic Hyperdrive / Browser Sidecar</strong>
+                        <span className="text-[9px] font-mono-clinical font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded">1-Click Overlay</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        Runs directly inside the physician's browser or Epic Hyperdrive workstation, overlaying sub-80ms triage classifications and 1-click order slips right over the native in-basket.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/80">
+                      <div className="flex items-center justify-between">
+                        <strong className="text-slate-900 font-bold">4. Automated Nightly SFTP Batch</strong>
+                        <span className="text-[9px] font-mono-clinical font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Enterprise Batch</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                        Hospital IT drops encrypted morning CSV exports at 5:00 AM. PajamaZero batches and deflects 80% of clutter before doctors start morning rounds.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => setShowImportModal(false)}
+                      className="h-8 px-4 rounded-lg bg-slate-900 text-white font-semibold text-xs"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

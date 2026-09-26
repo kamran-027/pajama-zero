@@ -38,7 +38,7 @@ class JevTriageResult(BaseModel):
     pre_drafted_action: str
     latency_ms: float
     token_cost_usd: float
-    evaluated_by: str = "JEV System One (TypeSafe AI)"
+    evaluated_by: str = "PajamaZero Autonomous Engine"
     timestamp: str
 
 class TriageRequest(BaseModel):
