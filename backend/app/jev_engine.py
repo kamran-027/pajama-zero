@@ -159,7 +159,7 @@ class JevClinicalEngine:
                 8,
                 True,
                 "High-grade abnormal cervical biopsy (CIN-3) requires physician disclosure, oncologic discussion, and LEEP/cold-knife cone scheduling.",
-                "Attending Physician (Dr. Khan)",
+                "Attending Physician (Dr. Reynolds)",
                 "Physician call back required to discuss histology, cancer risk counseling, and procedural consent.",
                 "📋 MD ACTION BRIEF: Patient Elena Rostova (MRN-91204) reviewed CIN-3 on portal. Schedule 15-min counseling call re: excisional procedure."
             )
@@ -170,7 +170,7 @@ class JevClinicalEngine:
                 8,
                 True,
                 "Critical hyperkalemia (K+ 5.7) and acute renal insufficiency in HFrEF patient taking dual RAAS inhibitors (Lisinopril + Spironolactone).",
-                "Attending Physician (Dr. Khan)",
+                "Attending Physician (Dr. Reynolds)",
                 "Urgent clinical order: Hold Lisinopril and Spironolactone; order stat repeat BMP and ECG; evaluate for emergency evaluation if symptomatic.",
                 "📋 MD ACTION BRIEF: Critical K+ 5.7, Cr 1.8. Recommend holding ACEi/MRA immediately and scheduling repeat lab draw within 24h."
             )
@@ -224,7 +224,7 @@ class JevClinicalEngine:
                 "Subacute persistent cough (>3 weeks) requires auscultation, assessment for post-infectious bronchial hyperresponsiveness vs. cough-variant asthma.",
                 "Outpatient Clinic Scheduling",
                 "Offer routine clinical appointment. Over-the-counter cough suppressants have failed.",
-                "📅 APPOINTMENT LINK SENT: 'A cough lasting over 3 weeks warrants lung exam. Book an appointment with Dr. Khan or our clinical nurse practitioner.'"
+                "📅 APPOINTMENT LINK SENT: 'A cough lasting over 3 weeks warrants lung exam. Book an appointment with Dr. Reynolds or our clinical nurse practitioner.'"
             )
 
         # -------------------------------------------------------------
