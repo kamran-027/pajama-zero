@@ -68,4 +68,4 @@ python3 test_triage.py
 - **Agent Orchestration**: LangGraph, LangChain Core
 - **Backend**: FastAPI, Pydantic v2, Uvicorn
 - **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS, Lucide Icons
-- **Created by**: Kamran Khan
+- **Created by**: Apex Clinical Systems
