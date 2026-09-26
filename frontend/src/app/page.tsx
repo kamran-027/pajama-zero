@@ -17,7 +17,6 @@ import {
   FileSpreadsheet,
   FileText,
   Filter,
-  HeartPulse,
   Inbox,
   Keyboard,
   Layers,
@@ -500,8 +499,13 @@ export default function PajamaZeroClinicalConsole() {
         <header className="rounded-2xl border border-slate-200/90 bg-white/95 backdrop-blur-md px-4 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-4 shadow-sm w-full min-w-0">
           {/* Left: Brand & Clinical Context */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shadow-xs text-white shrink-0">
-              <HeartPulse className="w-4 h-4 text-emerald-400" />
+            <div className="w-9 h-9 rounded-xl bg-[#090D16] border border-slate-800/90 flex items-center justify-center shadow-xs shrink-0 p-1.5 ring-1 ring-slate-900/5 group hover:border-slate-700 transition-colors">
+              <svg viewBox="0 0 32 32" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="13.2" y="6" width="5.6" height="20" rx="1.8" fill="#FFFFFF"/>
+                <rect x="6" y="13.2" width="20" height="5.6" rx="1.8" fill="#FFFFFF"/>
+                <circle cx="16" cy="16" r="4" fill="#090D16"/>
+                <circle cx="16" cy="16" r="1.5" fill="#10B981"/>
+              </svg>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">

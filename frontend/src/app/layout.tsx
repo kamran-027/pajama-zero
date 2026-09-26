@@ -3,7 +3,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "PajamaZero — Clinical In-Basket Triage Console",
-  description: "Autonomous Clinical In-Basket Triage & Delegation Engine powered by JEV System One (TypeSafe AI) & LangGraph.",
+  description: "Autonomous Sub-100ms Clinical In-Basket Triage & Safe Lane Delegation Console.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" }
+    ],
+  },
 };
 
 export default function RootLayout({
