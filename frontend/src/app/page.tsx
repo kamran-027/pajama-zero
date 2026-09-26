@@ -789,92 +789,99 @@ export default function PajamaZeroClinicalConsole() {
                   transition={{ duration: 0.2 }}
                   className="flex flex-col gap-3.5"
                 >
-                  {/* BENTO 1: PATIENT PROFILE & REAL-TIME VITALS */}
-                  <CardSpotlight className="flex flex-col gap-3.5 p-4 sm:p-5">
+                  {/* BENTO 1: PATIENT PROFILE & REAL-TIME VITALS (Spacious, Elite Telemetry Strip) */}
+                  <CardSpotlight className="flex flex-col gap-5 p-6">
+                    {/* Patient Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-100 border border-blue-200 flex items-center justify-center text-sm font-extrabold text-blue-700 shadow-sm">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/80 flex items-center justify-center text-sm font-black text-blue-700 shadow-2xs">
                           {currentResult.patient_name.split(" ").map((n) => n[0]).join("")}
                         </div>
                         <div>
                           <div className="flex items-center gap-3">
-                            <h2 className="text-base font-extrabold text-slate-900 tracking-tight">{currentResult.patient_name}</h2>
-                            <span className="text-xs font-mono-clinical px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 font-medium">
+                            <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">{currentResult.patient_name}</h2>
+                            <span className="text-xs font-mono-clinical px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 font-semibold">
                               {currentResult.mrn}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1">
+                          <p className="text-xs text-slate-500 mt-1 font-medium">
                             Age {currentPresetContext?.patient_age || 50} &bull; Gender {currentPresetContext?.patient_gender || "U"} &bull; Primary Payer: BlueCross BlueShield PPO
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 self-start sm:self-auto">
-                        <span className={`text-xs font-mono-clinical px-3 py-1 rounded-lg font-bold shadow-sm ${getLaneStyle(currentResult.lane).tagBg}`}>
+                        <span className={`text-xs font-mono-clinical px-3.5 py-1.5 rounded-xl font-bold shadow-2xs ${getLaneStyle(currentResult.lane).tagBg}`}>
                           {getLaneStyle(currentResult.lane).label}
                         </span>
                       </div>
                     </div>
 
-                    {/* Vitals Telemetry Row (Spacious Clean White Cards) */}
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Blood Pressure</span>
-                        <span className="font-extrabold text-sm text-slate-900">{vitals.bp}</span>
-                        <span className="text-[9px] text-slate-400 block">mmHg</span>
-                      </div>
+                    {/* Vitals Telemetry Strip (Unified, Expansive Hospital HUD) */}
+                    <div className="rounded-2xl bg-slate-50/80 border border-slate-200/80 p-3 sm:p-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-slate-200/80 font-mono-clinical">
+                        <div className="py-2 px-3 text-center">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1 font-bold">Blood Pressure</span>
+                          <span className="font-extrabold text-base text-slate-900 block">{vitals.bp}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">mmHg</span>
+                        </div>
 
-                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Heart Rate</span>
-                        <span className="font-extrabold text-sm text-slate-900">{vitals.hr}</span>
-                        <span className="text-[9px] text-slate-400 block">bpm</span>
-                      </div>
+                        <div className="py-2 px-3 text-center">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1 font-bold">Heart Rate</span>
+                          <span className="font-extrabold text-base text-slate-900 block">{vitals.hr}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">bpm</span>
+                        </div>
 
-                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Oxygen Sat</span>
-                        <span className="font-extrabold text-sm text-slate-900">{vitals.spo2}</span>
-                        <span className="text-[9px] text-slate-400 block">Room Air</span>
-                      </div>
+                        <div className="py-2 px-3 text-center">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1 font-bold">Oxygen Sat</span>
+                          <span className="font-extrabold text-base text-slate-900 block">{vitals.spo2}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">Room Air</span>
+                        </div>
 
-                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Temperature</span>
-                        <span className="font-extrabold text-sm text-slate-900">{vitals.temp}</span>
-                        <span className="text-[9px] text-slate-400 block">Oral Core</span>
-                      </div>
+                        <div className="py-2 px-3 text-center">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1 font-bold">Temperature</span>
+                          <span className="font-extrabold text-base text-slate-900 block">{vitals.temp}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">Oral Core</span>
+                        </div>
 
-                      <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-center font-mono-clinical">
-                        <span className="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Pain Rating</span>
-                        <span className={`font-extrabold text-sm ${currentResult.acuity_score >= 8 ? "text-rose-600" : "text-slate-900"}`}>
-                          {vitals.pain}
-                        </span>
-                        <span className="text-[9px] text-slate-500 block">{vitals.status}</span>
+                        <div className="py-2 px-3 text-center">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1 font-bold">Pain Rating</span>
+                          <span className={`font-extrabold text-base block ${currentResult.acuity_score >= 8 ? "text-rose-600" : "text-slate-900"}`}>
+                            {vitals.pain}
+                          </span>
+                          <span className="text-[10px] text-slate-500 block mt-0.5 font-medium">{vitals.status}</span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Medical History & Current Meds */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
-                      <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                        <span className="text-[10px] font-mono-clinical uppercase tracking-wider text-slate-500 block mb-1 font-bold">
+                    {/* Medical History & Current Meds (Spacious, Clear Structure) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
+                      <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between gap-2">
+                        <span className="text-[10px] font-mono-clinical uppercase tracking-wider text-slate-400 block font-bold">
                           Documented Clinical History
                         </span>
-                        <p className="text-slate-700 font-mono-clinical text-xs leading-relaxed">
+                        <p className="text-slate-800 font-mono-clinical text-xs leading-relaxed">
                           {currentPresetContext?.relevant_history || "No prior surgical or chronic conditions logged."}
                         </p>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                        <span className="text-[10px] font-mono-clinical uppercase tracking-wider text-slate-500 block mb-1 font-bold">
+                      <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between gap-2">
+                        <span className="text-[10px] font-mono-clinical uppercase tracking-wider text-slate-400 block font-bold">
                           Active Medication Regimen
                         </span>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
                           {currentPresetContext?.active_medications && currentPresetContext.active_medications.length > 0 ? (
                             currentPresetContext.active_medications.map((m, i) => (
-                              <span key={i} className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-xs font-mono-clinical text-slate-700 shadow-2xs">
-                                {m}
+                              <span
+                                key={i}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-slate-200/90 text-xs font-mono-clinical text-slate-800 font-medium shadow-2xs"
+                              >
+                                <Pill className="w-3 h-3 text-blue-500 shrink-0" />
+                                <span>{m}</span>
                               </span>
                             ))
                           ) : (
-                            <span className="text-slate-400 text-xs">No active medications</span>
+                            <span className="text-slate-400 text-xs">No active medications logged</span>
                           )}
                         </div>
                       </div>
@@ -882,7 +889,7 @@ export default function PajamaZeroClinicalConsole() {
                   </CardSpotlight>
 
                   {/* BENTO 2: INBOUND PATIENT PORTAL ENCOUNTER */}
-                  <CardSpotlight className="flex flex-col gap-2.5 p-4 sm:p-5">
+                  <CardSpotlight className="flex flex-col gap-3.5 p-6">
                     <div className="flex items-center justify-between text-xs text-slate-500 pb-3 border-b border-slate-100">
                       <div className="flex items-center gap-2.5">
                         <FileText className="w-4 h-4 text-blue-600" />
@@ -895,14 +902,14 @@ export default function PajamaZeroClinicalConsole() {
                       </span>
                     </div>
 
-                    <h3 className="text-sm font-bold text-slate-900 pt-1 leading-snug">{currentResult.subject}</h3>
+                    <h3 className="text-base font-bold text-slate-900 leading-snug">{currentResult.subject}</h3>
                     <p className="text-xs text-slate-700 leading-relaxed font-sans whitespace-pre-line py-1">
                       {currentPresetContext?.body || currentResult.snippet}
                     </p>
                   </CardSpotlight>
 
                   {/* BENTO 3: CLINICAL DECISION TRACE & SPEED BENCHMARK */}
-                  <CardSpotlight className="flex flex-col gap-3.5 p-4 sm:p-5">
+                  <CardSpotlight className="flex flex-col gap-4 p-6">
                     <div
                       onClick={() => setShowTrace(!showTrace)}
                       className="flex items-center justify-between cursor-pointer pb-2 border-b border-slate-100"
@@ -970,8 +977,8 @@ export default function PajamaZeroClinicalConsole() {
                   </CardSpotlight>
 
                   {/* BENTO 4: CLINICAL ORDER & DELEGATION SLIP */}
-                  <CardSpotlight className="flex flex-col gap-3.5 p-4 sm:p-5">
-                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                  <CardSpotlight className="flex flex-col gap-4 p-6">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                       <div className="flex items-center gap-2">
                         <Stethoscope className="w-4 h-4 text-blue-600" />
                         <h4 className="font-mono-clinical text-xs font-bold text-slate-900 uppercase tracking-wider">
