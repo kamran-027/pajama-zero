@@ -1,5 +1,10 @@
 import os
 import uvicorn
+from dotenv import load_dotenv
+
+# Load local environment variables from .env
+load_dotenv()
+
 from app.main import app
 
 if __name__ == "__main__":

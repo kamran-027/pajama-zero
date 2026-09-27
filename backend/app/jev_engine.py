@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import time
 import httpx
 from typing import Optional, Tuple
@@ -9,38 +10,49 @@ class JevClinicalEngine:
     def __init__(self):
         self.typesafe_api_key = os.getenv("TYPESAFE_API_KEY", "").strip()
         self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+        self.openrouter_jev_model = os.getenv("OPENROUTER_JEV_MODEL", "typesafe/jev-1.13").strip()
         self.cost_per_million_tokens = 0.042 # TypeSafe AI JEV official pricing
 
     async def evaluate_message(self, message: PatientMessage, custom_api_key: Optional[str] = None) -> JevTriageResult:
         """
-        Evaluates a patient portal message using JEV System One semantics:
-        - Choice: Clinical Lane Assignment
-        - Score: Clinical Acuity Index (1-10)
-        - Noul: requires_physician_license (True/False)
+        Evaluates a patient portal message using JEV System One (TypeSafe AI):
+        - Priority 1: OpenRouter JEV Decisions API (`typesafe/jev-1.13`)
+        - Priority 2: Direct TypeSafe AI System One Endpoint
+        - Priority 3: Local Clinical Safety Rule Engine (Explicitly labeled when no API key is provided)
         """
         start_time = time.perf_counter()
-        api_key = custom_api_key or self.typesafe_api_key
         
-        # If API key is provided and live Jev endpoint is reachable, attempt live evaluation
-        if api_key:
-            try:
-                result = await self._call_typesafe_api(message, api_key)
-                if result:
-                    latency = (time.perf_counter() - start_time) * 1000.0
-                    result.latency_ms = round(latency, 2)
-                    return result
-            except Exception:
-                # Seamless fallback to local deterministic JEV engine
-                pass
+        # Determine API keys
+        openrouter_key = self.openrouter_api_key
+        typesafe_key = self.typesafe_api_key
+        if custom_api_key:
+            if custom_api_key.startswith("sk-or-"):
+                openrouter_key = custom_api_key
+            else:
+                typesafe_key = custom_api_key
 
-        # High-Fidelity Local Deterministic JEV Engine
+        # 1. PRIORITY 1: OpenRouter JEV Model (typesafe/jev-1.13 Decisions API)
+        if openrouter_key:
+            try:
+                result = await self._call_openrouter_jev_api(message, openrouter_key, start_time)
+                if result:
+                    return result
+            except Exception as e:
+                print(f"[OpenRouter JEV Error] {e}. Falling back to local engine.")
+
+        # 2. PRIORITY 2: Direct TypeSafe AI JEV Endpoint
+        if typesafe_key:
+            try:
+                result = await self._call_typesafe_api(message, typesafe_key, start_time)
+                if result:
+                    return result
+            except Exception as e:
+                print(f"[TypeSafe AI Direct Error] {e}. Falling back to local engine.")
+
+        # 3. PRIORITY 3: Local Clinical Rule Engine (Active only when no JEV key is set)
         lane, acuity, req_license, rationale, delegated, action, pre_drafted = self._local_jev_evaluate(message)
         
-        elapsed_ms = (time.perf_counter() - start_time) * 1000.0
-        # Calibrate latency to simulate authentic Jev System One sub-80ms evaluation window (45ms - 75ms)
-        simulated_latency = round(max(elapsed_ms, 52.4 + (hash(message.id) % 25)), 2)
-        
-        # Calculate tokens (~150 tokens per clinical note)
+        real_elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
         token_count = len(message.body.split()) * 1.3
         token_cost = round((token_count / 1_000_000.0) * self.cost_per_million_tokens, 6)
 
@@ -75,9 +87,9 @@ class JevClinicalEngine:
             delegated_to=delegated,
             action_plan=action,
             pre_drafted_action=pre_drafted,
-            latency_ms=simulated_latency,
-            token_cost_usd=max(token_cost, 0.000008),
-            evaluated_by="PajamaZero Autonomous Engine",
+            latency_ms=real_elapsed_ms,
+            token_cost_usd=token_cost,
+            evaluated_by="Local Safety Engine (Add OPENROUTER_API_KEY for Live JEV)",
             timestamp=message.timestamp
         )
 
@@ -303,20 +315,154 @@ class JevClinicalEngine:
             "📋 GENERAL TRIAGE: Logged in clinic triage queue for standard nursing response within 24 hours."
         )
 
-    async def _call_typesafe_api(self, message: PatientMessage, api_key: str) -> Optional[JevTriageResult]:
-        """Direct call to TypeSafe AI System One HTTP API if key is active."""
+    async def _call_openrouter_jev_api(self, message: PatientMessage, api_key: str, start_time: float) -> Optional[JevTriageResult]:
+        """Calls OpenRouter's native Decisions API with TypeSafe AI's JEV model (typesafe/jev-1.13)."""
+        # OpenRouter's dedicated JEV decisions endpoint
+        url = "https://openrouter.ai/api/alpha/decisions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "HTTP-Referer": "https://pajamazero.health",
+            "X-Title": "PajamaZero Clinical In-Basket Triage (JEV)",
+            "Content-Type": "application/json"
+        }
+
+        # Build clinical state representation
+        state_text = (
+            f"PATIENT: {message.patient_name} (Age: {message.patient_age}, Gender: {message.patient_gender}, MRN: {message.mrn}). "
+            f"SUBJECT: {message.subject}. "
+            f"MESSAGE: {message.body}. "
+            f"RELEVANT HISTORY: {message.relevant_history or 'None documented'}. "
+            f"ACTIVE MEDICATIONS: {', '.join(message.active_medications) if message.active_medications else 'None'}."
+        )
+
+        payload = {
+            "model": self.openrouter_jev_model,  # typesafe/jev-1.13
+            "state": state_text,
+            "questions": {
+                "lane": {
+                    "type": "choice",
+                    "instructions": "Which clinical triage lane does this patient message belong to?",
+                    "criteria": {
+                        "01_EMERGENCY_DIVERT": "Acute life-threats: ischemic chest pain/pressure, stroke symptoms, acute severe dyspnea, anaphylaxis, active self-harm",
+                        "02_STAFF_DELEGATE": "Routine stable non-controlled refill with normal labs, handicap parking, work note, billing/superbill inquiry, home vitals log",
+                        "03_CONVERT_TO_VISIT": "New undifferentiated clinical complaint, joint swelling/injury, cough >2 weeks, new weight-loss GLP-1 initiation",
+                        "04_PHYSICIAN_REVIEW": "Abnormal pathology/biopsy (CIN-3, malignancy), dangerous critical lab anomaly (K+ 5.7), acute post-op infection with fever",
+                        "05_AUTO_RESOLVE": "Thank you note, simple appointment confirmation with no symptoms, clinical complaints, or refill requests"
+                    }
+                },
+                "acuity_score": {
+                    "type": "score",
+                    "instructions": "Rate clinical acuity on a scale from 1 to 10",
+                    "criteria": [
+                        "Level 1: Non-urgent administrative inquiry or confirmation",
+                        "Level 2: Routine prescription refill or stable documentation",
+                        "Level 3: Mild chronic symptom or preventive query",
+                        "Level 4: New subacute complaint or localized injury",
+                        "Level 5: Moderate undifferentiated pain or functional limitation",
+                        "Level 6: Persistent worsening symptom needing early workup",
+                        "Level 7: Significant clinical anomaly or abnormal lab value",
+                        "Level 8: High-grade histology, acute post-op infection, or critical lab spike",
+                        "Level 9: Severe acute distress, respiratory compromise, or evolving deficit",
+                        "Level 10: Immediate life-threatening emergency (active ischemia, stroke, collapse)"
+                    ]
+                },
+                "requires_physician_license": {
+                    "type": "noul",
+                    "instructions": "Does this message legally require a licensed physician evaluation?"
+                }
+            }
+        }
+
+        badge_colors = {
+            ClinicalLane.EMERGENCY_DIVERT: "rose",
+            ClinicalLane.STAFF_DELEGATE: "sky",
+            ClinicalLane.CONVERT_TO_VISIT: "amber",
+            ClinicalLane.PHYSICIAN_REVIEW: "emerald",
+            ClinicalLane.AUTO_RESOLVE: "slate",
+        }
+
+        lane_titles = {
+            ClinicalLane.EMERGENCY_DIVERT: "Emergency Red-Flag Divert",
+            ClinicalLane.STAFF_DELEGATE: "Staff Delegation (MA / Desk)",
+            ClinicalLane.CONVERT_TO_VISIT: "Convert to Billable Visit",
+            ClinicalLane.PHYSICIAN_REVIEW: "Physician High-Acuity Review",
+            ClinicalLane.AUTO_RESOLVE: "Auto-Resolved / Archived",
+        }
+
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                answers = data.get("answers", {})
+
+                # 1. Parse Choice primitive
+                raw_lane = answers.get("lane", {}).get("choice", "02_STAFF_DELEGATE")
+                try:
+                    lane = ClinicalLane(raw_lane)
+                except ValueError:
+                    lane = ClinicalLane.STAFF_DELEGATE
+
+                # 2. Parse Score primitive (1-10)
+                raw_acuity = answers.get("acuity_score", {}).get("score", 3)
+                try:
+                    acuity = max(1, min(10, round(float(raw_acuity))))
+                except (ValueError, TypeError):
+                    acuity = 3
+
+                # 3. Parse Noul primitive (boolean probability)
+                noul_val = answers.get("requires_physician_license", {}).get("noul", 0.0)
+                req_license = bool(float(noul_val) >= 0.5)
+
+                elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
+                usage_cost = data.get("usage", {}).get("cost", 0.000008)
+
+                # Context-aware clinical briefs
+                delegations = {
+                    ClinicalLane.EMERGENCY_DIVERT: ("Emergency Services (911 / Local ER)", "IMMEDIATE OVERRIDE: Advise patient not to drive; call 911 immediately.", "🚨 CRITICAL NOTICE: Your symptoms require emergency medical care. Please dial 911 immediately."),
+                    ClinicalLane.PHYSICIAN_REVIEW: ("Attending Physician (Dr. Reynolds)", "Physician callback required for diagnostic disclosure or medication modification.", "📋 MD ACTION BRIEF: JEV routed encounter to physician queue for clinical order."),
+                    ClinicalLane.CONVERT_TO_VISIT: ("Patient Scheduling Coordinator", "Send 1-click billable appointment booking link to patient portal.", "📋 VISIT INVITE: 'Dr. Reynolds requests an in-person or video consultation to evaluate these new symptoms.'"),
+                    ClinicalLane.STAFF_DELEGATE: ("Clinic Support Pool (MA / Desk)", "Protocol delegation verified: Complete administrative task and notify patient.", "📋 STAFF ACTION: Handled under clinic standing protocol without physician interruption."),
+                    ClinicalLane.AUTO_RESOLVE: ("Automated Medical Record Archive", "Silently log message to patient chart encounter history.", "Archived: Patient confirmation/gratitude logged to EHR history.")
+                }
+                delegated, action, pre_drafted = delegations[lane]
+
+                confidence = answers.get("lane", {}).get("confidence", 0.95)
+                rationale = f"Evaluated by JEV System One on OpenRouter ({round(float(confidence)*100)}% confidence). Safe routing to {lane_titles[lane]}."
+
+                return JevTriageResult(
+                    message_id=message.id,
+                    patient_name=message.patient_name,
+                    mrn=message.mrn,
+                    subject=message.subject,
+                    snippet=message.body[:110] + ("..." if len(message.body) > 110 else ""),
+                    lane=lane,
+                    lane_title=lane_titles[lane],
+                    lane_badge_color=badge_colors[lane],
+                    acuity_score=acuity,
+                    requires_physician_license=req_license,
+                    clinical_rationale=rationale,
+                    delegated_to=delegated,
+                    action_plan=action,
+                    pre_drafted_action=pre_drafted,
+                    latency_ms=elapsed_ms,
+                    token_cost_usd=round(float(usage_cost), 6),
+                    evaluated_by=f"JEV System One (OpenRouter: {self.openrouter_jev_model})",
+                    timestamp=message.timestamp
+                )
+            else:
+                print(f"[OpenRouter JEV API Error] Status {resp.status_code}: {resp.text}")
+                return None
+
+    async def _call_typesafe_api(self, message: PatientMessage, api_key: str, start_time: float) -> Optional[JevTriageResult]:
+        """Direct call to TypeSafe AI System One HTTP API."""
         url = "https://api.typesafe.ai/v1/systemone"
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
+        state_text = f"PATIENT: {message.patient_name} (Age: {message.patient_age}, MRN: {message.mrn}). SUBJECT: {message.subject}. MESSAGE: {message.body}. HISTORY: {message.relevant_history or ''}. MEDS: {', '.join(message.active_medications)}."
         payload = {
-            "state": {
-                "patient_name": message.patient_name,
-                "subject": message.subject,
-                "body": message.body,
-                "history": message.relevant_history or ""
-            },
+            "state": state_text,
             "questions": {
                 "lane": {
                     "type": "choice",
@@ -332,7 +478,18 @@ class JevClinicalEngine:
                 "acuity_score": {
                     "type": "score",
                     "instructions": "Rate clinical acuity on a scale from 1 to 10",
-                    "range": [1, 10]
+                    "criteria": [
+                        "Level 1: Non-urgent administrative inquiry or confirmation",
+                        "Level 2: Routine prescription refill or stable documentation",
+                        "Level 3: Mild chronic symptom or preventive query",
+                        "Level 4: New subacute complaint or localized injury",
+                        "Level 5: Moderate undifferentiated pain or functional limitation",
+                        "Level 6: Persistent worsening symptom needing early workup",
+                        "Level 7: Significant clinical anomaly or abnormal lab value",
+                        "Level 8: High-grade histology, acute post-op infection, or critical lab spike",
+                        "Level 9: Severe acute distress, respiratory compromise, or evolving deficit",
+                        "Level 10: Immediate life-threatening emergency (active ischemia, stroke, collapse)"
+                    ]
                 },
                 "requires_physician_license": {
                     "type": "noul",
@@ -340,15 +497,29 @@ class JevClinicalEngine:
                 }
             }
         }
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        badge_colors = {
+            ClinicalLane.EMERGENCY_DIVERT: "rose",
+            ClinicalLane.STAFF_DELEGATE: "sky",
+            ClinicalLane.CONVERT_TO_VISIT: "amber",
+            ClinicalLane.PHYSICIAN_REVIEW: "emerald",
+            ClinicalLane.AUTO_RESOLVE: "slate",
+        }
+        lane_titles = {
+            ClinicalLane.EMERGENCY_DIVERT: "Emergency Red-Flag Divert",
+            ClinicalLane.STAFF_DELEGATE: "Staff Delegation (MA / Desk)",
+            ClinicalLane.CONVERT_TO_VISIT: "Convert to Billable Visit",
+            ClinicalLane.PHYSICIAN_REVIEW: "Physician High-Acuity Review",
+            ClinicalLane.AUTO_RESOLVE: "Auto-Resolved / Archived",
+        }
+        async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.post(url, json=payload, headers=headers)
             if resp.status_code == 200:
                 data = resp.json()
                 lane_choice = data.get("choices", {}).get("lane", {}).get("choice", "02_STAFF_DELEGATE")
                 acuity = int(data.get("scores", {}).get("acuity_score", {}).get("score", 3))
                 req_license = bool(data.get("nouls", {}).get("requires_physician_license", {}).get("value", False))
-                # Return mapped result
                 lane = ClinicalLane(lane_choice)
+                elapsed_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
                 return JevTriageResult(
                     message_id=message.id,
                     patient_name=message.patient_name,
@@ -356,17 +527,17 @@ class JevClinicalEngine:
                     subject=message.subject,
                     snippet=message.body[:110] + "...",
                     lane=lane,
-                    lane_title=lane.replace("_", " ").title(),
-                    lane_badge_color="emerald",
+                    lane_title=lane_titles[lane],
+                    lane_badge_color=badge_colors[lane],
                     acuity_score=acuity,
                     requires_physician_license=req_license,
-                    clinical_rationale="Evaluated via live TypeSafe AI System One decision API.",
+                    clinical_rationale="Evaluated via direct TypeSafe AI System One decision API.",
                     delegated_to="Verified Triage Lane",
                     action_plan="Automated decision route dispatched.",
                     pre_drafted_action="Action generated from JEV API response.",
-                    latency_ms=64.0,
+                    latency_ms=elapsed_ms,
                     token_cost_usd=0.000008,
-                    evaluated_by="JEV System One (Live API)",
+                    evaluated_by="JEV System One (Direct TypeSafe AI)",
                     timestamp=message.timestamp
                 )
         return None

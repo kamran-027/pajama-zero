@@ -1,7 +1,13 @@
 import time
+import asyncio
 from typing import List, Dict
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+# Load environment variables from .env
+load_dotenv()
+
 
 from .schemas import (
     PatientMessage,
@@ -60,12 +66,13 @@ async def triage_batch(req: BatchTriageRequest):
         raise HTTPException(status_code=400, detail="No messages provided in batch request.")
     
     start_batch = time.perf_counter()
-    results: List[JevTriageResult] = []
     lane_counts: Dict[str, int] = {lane.value: 0 for lane in ClinicalLane}
 
-    for msg in req.messages:
-        res = await run_triage_pipeline(msg, api_key=req.api_key)
-        results.append(res)
+    # Parallelize triage across all messages for maximum batch throughput
+    results: List[JevTriageResult] = await asyncio.gather(
+        *[run_triage_pipeline(msg, api_key=req.api_key) for msg in req.messages]
+    )
+    for res in results:
         lane_counts[res.lane.value] = lane_counts.get(res.lane.value, 0) + 1
 
     total_latency = (time.perf_counter() - start_batch) * 1000.0

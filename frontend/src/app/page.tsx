@@ -918,40 +918,45 @@ export default function PajamaZeroClinicalConsole() {
                       onClick={() => setShowTrace(!showTrace)}
                       className="flex items-center justify-between cursor-pointer pb-2 border-b border-slate-100"
                     >
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 flex-wrap">
                         <Zap className="w-4 h-4 text-teal-600" />
                         <h4 className="font-mono-clinical text-xs text-slate-900 font-extrabold tracking-wider uppercase">
-                          Deterministic Clinical Decision Trace
+                          JEV System One Decision Trace
                         </h4>
-                        <span className="text-xs font-mono-clinical text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200 font-bold">
+                        <span className="text-xs font-mono-clinical text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-200 font-bold">
                           {currentResult.latency_ms}ms &bull; ${currentResult.token_cost_usd.toFixed(6)}
                         </span>
+                        {currentResult.evaluated_by && (
+                          <span className="text-[11px] font-mono-clinical text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 font-semibold">
+                            {currentResult.evaluated_by}
+                          </span>
+                        )}
                       </div>
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showTrace ? "" : "-rotate-90"}`} />
                     </div>
 
                     {showTrace && (
                       <div className="flex flex-col gap-3">
-                        {/* Primitives Grid */}
+                        {/* JEV Typed Primitives Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-mono-clinical text-xs">
                           <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Lane Routing</span>
+                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Choice Primitive (Lane)</span>
                             <span className="font-bold text-slate-900 text-sm mt-0.5 block">{currentResult.lane}</span>
-                            <span className="text-[10px] text-slate-500 mt-0.5 block">Deterministic routing</span>
+                            <span className="text-[10px] text-slate-500 mt-0.5 block">Categorical routing</span>
                           </div>
 
                           <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Acuity Risk Index</span>
+                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Score Primitive (Acuity)</span>
                             <span className="font-bold text-amber-700 text-sm mt-0.5 block">Acuity Level {currentResult.acuity_score} / 10</span>
-                            <span className="text-[10px] text-slate-500 mt-0.5 block">Continuous triage index</span>
+                            <span className="text-[10px] text-slate-500 mt-0.5 block">1-10 clinical calibration</span>
                           </div>
 
                           <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Physician License Safeguard</span>
+                            <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-bold">Noul Primitive (MD License)</span>
                             <span className={`font-bold text-sm mt-0.5 block ${currentResult.requires_physician_license ? "text-rose-700" : "text-emerald-700"}`}>
                               {currentResult.requires_physician_license ? "REQUIRED (MD)" : "NOT REQUIRED"}
                             </span>
-                            <span className="text-[10px] text-slate-500 mt-0.5 block">Legal medical safeguard</span>
+                            <span className="text-[10px] text-slate-500 mt-0.5 block">Probabilistic boolean</span>
                           </div>
                         </div>
 
@@ -966,7 +971,7 @@ export default function PajamaZeroClinicalConsole() {
                             <div className="bg-slate-400 h-full w-[96%]" title="Standard LLM: 1,800ms" />
                           </div>
                           <div className="flex items-center justify-between text-slate-500 text-[10px] pt-0.5">
-                            <span className="text-teal-700 font-bold">⚡ PajamaZero: {currentResult.latency_ms}ms ($0.000008)</span>
+                            <span className="text-teal-700 font-bold">⚡ JEV System One: {currentResult.latency_ms}ms (${currentResult.token_cost_usd.toFixed(6)})</span>
                             <span>Standard LLM: ~1,800ms ($0.015000)</span>
                           </div>
                         </div>

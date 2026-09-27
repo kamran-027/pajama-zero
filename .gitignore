@@ -4,3 +4,10 @@
 .agents/
 .idea/
 .vscode/
+
+# Environment files
+.env
+.env*.local
+*.env
+!.env.example
+
