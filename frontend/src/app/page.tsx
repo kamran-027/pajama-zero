@@ -501,10 +501,10 @@ export default function PajamaZeroClinicalConsole() {
           <div className="flex items-center gap-3 shrink-0">
             <div className="w-9 h-9 rounded-xl bg-[#090D16] border border-slate-800/90 flex items-center justify-center shadow-xs shrink-0 p-1.5 ring-1 ring-slate-900/5 group hover:border-slate-700 transition-colors">
               <svg viewBox="0 0 32 32" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="13.2" y="6" width="5.6" height="20" rx="1.8" fill="#FFFFFF"/>
-                <rect x="6" y="13.2" width="20" height="5.6" rx="1.8" fill="#FFFFFF"/>
-                <circle cx="16" cy="16" r="4" fill="#090D16"/>
-                <circle cx="16" cy="16" r="1.5" fill="#10B981"/>
+                <rect x="13.2" y="6" width="5.6" height="20" rx="2.8" fill="#FFFFFF"/>
+                <rect x="6" y="13.2" width="20" height="5.6" rx="2.8" fill="#FFFFFF"/>
+                <circle cx="16" cy="16" r="4.2" fill="#090D16"/>
+                <circle cx="16" cy="16" r="1.8" fill="#10B981"/>
               </svg>
             </div>
             <div className="min-w-0">
